@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sorteo Amigo Secreto 🎁</title>
+    <style>
+        :root {
+            --primary: #d42426; /* Rojo Navidad */
+            --secondary: #165b33; /* Verde Pino */
+            --bg: #f8f9fa;
+            --text: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        h1 { color: var(--primary); margin-bottom: 1.5rem; }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            transition: transform 0.1s;
+        }
+
+        button:active { transform: scale(0.98); }
+
+        .btn-add { background-color: var(--secondary); color: white; }
+        .btn-start { background-color: var(--primary); color: white; width: 100%; margin-top: 20px;}
+        .btn-reset { background-color: #6c757d; color: white; margin-top: 10px;}
+
+        ul { list-style: none; padding: 0; text-align: left; }
+        li {
+            background: #eee;
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .delete-btn { color: red; cursor: pointer; font-weight: bold; }
+
+        /* Pantalla del Juego */
+        #game-screen { display: none; }
+        
+        .card {
+            background: #fff;
+            border: 2px dashed var(--secondary);
+            padding: 40px;
+            margin: 20px 0;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .hidden-content { filter: blur(15px); user-select: none; transition: filter 0.3s;}
+        .revealed { filter: blur(0); }
+        
+        .instruction { font-size: 0.9rem; color: #666; margin-top: 10px; }
+
+    </style>
+</head>
+<body>
+
+    <div class="container" id="setup-screen">
+        <h1>🎁 Amigo Secreto</h1>
+        <p>Agrega a los participantes (Mínimo 3)</p>
+        
+        <div class="input-group">
+            <input type="text" id="nameInput" placeholder="Nombre del participante..." onkeypress="handleEnter(event)">
+            <button class="btn-add" onclick="addParticipant()">Agregar</button>
+        </div>
+
+        <ul id="participantsList"></ul>
+
+        <button class="btn-start" onclick="startGame()">¡Iniciar Sorteo!</button>
+    </div>
+
+    <div class="container" id="game-screen">
+        <h2 id="turn-title">Turno de...</h2>
+        <p>Pasa el dispositivo a esta persona.</p>
+        
+        <div class="card" id="result-card" onclick="revealSecret()">
+            <h3 style="margin:0">Tu amigo secreto es:</h3>
+            <h1 id="secret-name" class="hidden-content">???</h1>
+            <p class="instruction">Toca aquí para ver/ocultar</p>
+        </div>
+
+        <button class="btn-start" id="next-btn" onclick="nextTurn()" disabled>Siguiente Persona</button>
+    </div>
+
+    <div class="container" id="end-screen" style="display: none;">
+        <h1>¡Sorteo Finalizado! 🎄</h1>
+        <p>Todos han recibido su amigo secreto.</p>
+        <button class="btn-reset" onclick="location.reload()">Nuevo Juego</button>
+    </div>
+
+    <script>
+        let participants = [];
+        let assignments = [];
+        let currentTurn = 0;
+        let isRevealed = false;
+
+        function handleEnter(e) {
+            if (e.key === 'Enter') addParticipant();
+        }
+
+        function addParticipant() {
+            const input = document.getElementById('nameInput');
+            const name = input.value.trim();
+            
+            if (name && !participants.includes(name)) {
+                participants.push(name);
+                renderList();
+                input.value = '';
+                input.focus();
+            } else if (participants.includes(name)) {
+                alert('¡Ese nombre ya está en la lista!');
+            }
+        }
+
+        function removeParticipant(index) {
+            participants.splice(index, 1);
+            renderList();
+        }
+
+        function renderList() {
+            const list = document.getElementById('participantsList');
+            list.innerHTML = participants.map((name, index) => `
+                <li>
+                    ${name}
+                    <span class="delete-btn" onclick="removeParticipant(${index})">×</span>
+                </li>
+            `).join('');
+        }
+
+        function startGame() {
+            if (participants.length < 3) {
+                alert('Se necesitan al menos 3 personas para jugar.');
+                return;
+            }
+
+            // Lógica del sorteo (Algoritmo Circular Aleatorio)
+            // 1. Copiamos y mezclamos la lista
+            let shuffled = [...participants];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+
+            // 2. Asignamos en cadena: A regala a B, B a C... Z a A
+            assignments = shuffled.map((giver, index) => {
+                let receiver = shuffled[(index + 1) % shuffled.length];
+                return { giver, receiver };
+            });
+
+            // 3. Cambiar UI
+            document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'block';
+            showTurn();
+        }
+
+        function showTurn() {
+            isRevealed = false;
+            document.getElementById('turn-title').innerText = `Turno de: ${assignments[currentTurn].giver}`;
+            document.getElementById('secret-name').innerText = assignments[currentTurn].receiver;
+            document.getElementById('secret-name').className = 'hidden-content';
+            document.getElementById('next-btn').disabled = true;
+            document.getElementById('next-btn').style.opacity = '0.5';
+        }
+
+        function revealSecret() {
+            const secretEl = document.getElementById('secret-name');
+            const nextBtn = document.getElementById('next-btn');
+            
+            if (!isRevealed) {
+                secretEl.className = 'revealed';
+                isRevealed = true;
+                nextBtn.disabled = false;
+                nextBtn.style.opacity = '1';
+                nextBtn.innerText = "Entendido, borrar pantalla";
+            } else {
+                secretEl.className = 'hidden-content';
+                isRevealed = false;
+            }
+        }
+
+        function nextTurn() {
+            // Limpiamos pantalla primero para seguridad
+            document.getElementById('secret-name').className = 'hidden-content';
+            
+            currentTurn++;
+            if (currentTurn < assignments.length) {
+                showTurn();
+                document.getElementById('next-btn').innerText = "Siguiente Persona";
+            } else {
+                document.getElementById('game-screen').style.display = 'none';
+                document.getElementById('end-screen').style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>
