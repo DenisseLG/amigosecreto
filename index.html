@@ -6,8 +6,8 @@
     <title>Sorteo Amigo Secreto 🎁</title>
     <style>
         :root {
-            --primary: #d42426; /* Rojo Navidad */
-            --secondary: #165b33; /* Verde Pino */
+            --primary: #d42426;
+            --secondary: #165b33;
             --bg: #f8f9fa;
             --text: #333;
         }
@@ -55,9 +55,17 @@
         .btn-start { background-color: var(--primary); color: white; }
         .btn-start:hover { background-color: #b01c1e; }
         
-        .btn-reset { background-color: #6c757d; color: white; margin-top: 10px;}
+        /* Botón pequeño para borrar memoria */
+        .btn-danger { 
+            background-color: transparent; 
+            color: #999; 
+            font-size: 12px; 
+            padding: 5px; 
+            margin-top: 30px; 
+            box-shadow: none; 
+            text-decoration: underline;
+        }
 
-        /* Lista de participantes (Visualización) */
         .participants-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -77,18 +85,14 @@
             align-items: center;
         }
 
-        .participant-item::before {
-            content: "🎅";
-            margin-right: 8px;
-        }
+        .participant-item::before { content: "🎅"; margin-right: 8px; }
 
-        /* Pantalla del Juego */
-        #game-screen { display: none; }
+        #game-screen, #end-screen { display: none; }
         
         .card {
             background: #fff;
             border: 3px dashed var(--secondary);
-            padding: 40px 20px;
+            padding: 30px 20px;
             margin: 20px 0;
             border-radius: 10px;
             cursor: pointer;
@@ -99,17 +103,25 @@
             filter: blur(20px); 
             opacity: 0.5;
             user-select: none; 
-            transition: all 0.3s;
+            pointer-events: none;
         }
         
-        .revealed { 
-            filter: blur(0); 
-            opacity: 1;
+        .revealed { filter: blur(0); opacity: 1; pointer-events: auto; }
+        
+        .wishlist-box {
+            background-color: #f1f8e9;
+            border: 1px solid #c5e1a5;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 0.95rem;
+            color: #33691e;
+            text-align: left;
         }
         
-        .instruction { font-size: 0.9rem; color: #666; margin-top: 15px; }
+        .wishlist-title { font-weight: bold; display: block; margin-bottom: 5px; color: var(--secondary); }
 
-        /* Animación suave */
+        .instruction { font-size: 0.9rem; color: #666; margin-top: 15px; }
         .fade-in { animation: fadeIn 0.5s; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
@@ -119,13 +131,13 @@
 
     <div class="container fade-in" id="setup-screen">
         <h1>🎁 Amigo Secreto</h1>
-        <h3>Lista de Participantes</h3>
-        <p style="font-size: 0.9rem; color: #666;">Verifiquen que estén todos antes de iniciar.</p>
+        <h3>Participantes Confirmados</h3>
+        <p style="font-size: 0.9rem; color: #666;">El sorteo se guarda automáticamente. Si recargas, continuarás donde te quedaste.</p>
         
-        <div class="participants-grid" id="staticList">
-            </div>
-
-        <button class="btn-start" onclick="startGame()">¡COMENZAR SORTEO!</button>
+        <div class="participants-grid" id="staticList"></div>
+        <button class="btn-start" onclick="initGame()">¡COMENZAR SORTEO!</button>
+        
+        <button class="btn-danger" onclick="hardReset()">⚠ Borrar memoria y reiniciar sorteo</button>
     </div>
 
     <div class="container fade-in" id="game-screen">
@@ -134,82 +146,113 @@
         
         <div class="card" id="result-card" onclick="revealSecret()">
             <h3 style="margin:0; color: #333; font-weight: normal;">Tu amigo secreto es:</h3>
-            <br>
-            <h1 id="secret-name" class="hidden-content">???</h1>
+            <div id="secret-content" class="hidden-content">
+                <h1 id="secret-name" style="margin: 10px 0; color: var(--primary)">Nombre</h1>
+                
+                <div class="wishlist-box">
+                    <span class="wishlist-title">💡 Sugerencias de regalo:</span>
+                    <span id="secret-wishes">...</span>
+                </div>
+            </div>
+            
             <p class="instruction">👆 Toca la tarjeta para ver/ocultar 👆</p>
         </div>
 
         <button class="btn-start" id="next-btn" onclick="nextTurn()" disabled style="opacity: 0.5;">Siguiente Persona</button>
     </div>
 
-    <div class="container fade-in" id="end-screen" style="display: none;">
+    <div class="container fade-in" id="end-screen">
         <h1>¡Sorteo Finalizado! 🎄</h1>
         <p>Todos han recibido su asignación.</p>
         <div style="font-size: 3rem; margin: 20px;">🎅🎉</div>
-        <button class="btn-reset" onclick="location.reload()">Reiniciar todo</button>
+        <p style="font-size: 0.8rem; color: #888;">El sorteo sigue guardado en memoria.</p>
+        <button class="btn-reset" style="background:#666; color:white;" onclick="hardReset()">Iniciar Nuevo Juego</button>
     </div>
 
     <script>
-        // LISTA FIJA DE PARTICIPANTES
-        const participants = [
-            "Denisse",
-            "Alejandra",
-            "Ambar",
-            "Romina",
-            "Nathalie",
-            "Thais",
-            "Cinthya",
-            "Gary",
-            "Lorena",
-            "Keyla",
-            "Kelly",
-            "Maria Jose"
+        // --- AQUÍ EDITAS LOS REGALOS ---
+        // Pon las sugerencias dentro de las comillas de "wishes"
+        const participantsData = [
+            { name: "Denisse", wishes: "Maquillaje, Libros, Ropa talla M" },
+            { name: "Alejandra", wishes: "Algo de tecnología, Audífonos" },
+            { name: "Ambar", wishes: "Juguetes, Dulces, Colores" },
+            { name: "Romina", wishes: "Accesorios, Aretes, Cadena" },
+            { name: "Nathalie", wishes: "Perfume suave, Agenda 2024" },
+            { name: "Thais", wishes: "Cualquier cosa de Harry Potter, Chocolates" },
+            { name: "Cinthya", wishes: "Velas aromáticas, Decoración hogar" },
+            { name: "Gary", wishes: "Vino, Gorra, Camiseta talla L" },
+            { name: "Lorena", wishes: "Crema corporal, Bolso pequeño" },
+            { name: "Keyla", wishes: "Esmaltes de uñas, Mascarillas faciales" },
+            { name: "Kelly", wishes: "Termo para agua, Llavero bonito" },
+            { name: "Maria Jose", wishes: "Case para celular, Audífonos" }
         ];
 
         let assignments = [];
         let currentTurn = 0;
         let isRevealed = false;
+        const STORAGE_KEY = 'amigoSecretoGame_v1';
 
-        // Cargar lista visualmente al inicio
+        // Al cargar la página
         window.onload = function() {
-            const list = document.getElementById('staticList');
-            list.innerHTML = participants.map(name => `
-                <div class="participant-item">${name}</div>
-            `).join('');
+            loadGame(); // Intentar cargar juego existente
+            renderParticipants();
         };
 
-        function startGame() {
-            // Lógica del sorteo (Algoritmo Circular Aleatorio)
-            let shuffled = [...participants];
-            // Algoritmo Fisher-Yates para mezcla perfecta
+        function renderParticipants() {
+            const list = document.getElementById('staticList');
+            list.innerHTML = participantsData.map(p => `
+                <div class="participant-item">
+                    <div>
+                        <strong>${p.name}</strong>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function initGame() {
+            // Confirmación antes de iniciar
+            if (!confirm("¿Están todos listos? Una vez iniciado, el orden se guardará y no se puede cambiar.")) return;
+
+            // Algoritmo de mezcla y asignación
+            let shuffled = [...participantsData];
             for (let i = shuffled.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
             }
 
-            // Asignación en cadena (Circular)
             assignments = shuffled.map((giver, index) => {
                 let receiver = shuffled[(index + 1) % shuffled.length];
-                return { giver, receiver };
+                return { 
+                    giver: giver.name, 
+                    receiverName: receiver.name,
+                    receiverWishes: receiver.wishes 
+                };
             });
 
-            // Cambiar pantalla
+            currentTurn = 0;
+            saveGame(); // Guardar estado inicial
+            startGameUI();
+        }
+
+        function startGameUI() {
             document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('end-screen').style.display = 'none';
             document.getElementById('game-screen').style.display = 'block';
             showTurn();
         }
 
         function showTurn() {
             isRevealed = false;
-            // Actualizar textos
-            document.getElementById('turn-title').innerHTML = `Turno de: <br><strong style="font-size: 1.5em; color: var(--primary)">${assignments[currentTurn].giver}</strong>`;
+            const turnData = assignments[currentTurn];
             
-            // Preparar tarjeta oculta
-            const secretEl = document.getElementById('secret-name');
-            secretEl.innerText = assignments[currentTurn].receiver;
-            secretEl.className = 'hidden-content';
+            document.getElementById('turn-title').innerHTML = `Turno de: <br><strong style="font-size: 1.5em; color: var(--primary)">${turnData.giver}</strong>`;
             
-            // Bloquear botón siguiente
+            // Llenar tarjeta oculta
+            document.getElementById('secret-name').innerText = turnData.receiverName;
+            document.getElementById('secret-wishes').innerText = turnData.receiverWishes || "Sin sugerencias específicas";
+            
+            document.getElementById('secret-content').className = 'hidden-content';
+            
             const nextBtn = document.getElementById('next-btn');
             nextBtn.disabled = true;
             nextBtn.style.opacity = '0.5';
@@ -218,21 +261,17 @@
         }
 
         function revealSecret() {
-            const secretEl = document.getElementById('secret-name');
+            const secretEl = document.getElementById('secret-content');
             const nextBtn = document.getElementById('next-btn');
             
             if (!isRevealed) {
-                // MOSTRAR
                 secretEl.className = 'revealed';
                 isRevealed = true;
-                
-                // Activar botón de siguiente
                 nextBtn.disabled = false;
                 nextBtn.style.opacity = '1';
-                nextBtn.style.backgroundColor = 'var(--secondary)'; // Cambio de color para indicar acción
-                nextBtn.innerText = "¡Listo! Ocultar y pasar";
+                nextBtn.style.backgroundColor = 'var(--secondary)';
+                nextBtn.innerText = "¡Entendido! Ocultar y pasar";
             } else {
-                // OCULTAR (Si le dan click de nuevo por error o curiosidad)
                 secretEl.className = 'hidden-content';
                 isRevealed = false;
                 nextBtn.disabled = true;
@@ -243,15 +282,54 @@
         }
 
         function nextTurn() {
-            // Doble seguridad visual antes de cambiar
-            document.getElementById('secret-name').className = 'hidden-content';
-            
+            document.getElementById('secret-content').className = 'hidden-content';
             currentTurn++;
+            saveGame(); // Guardar progreso
+
             if (currentTurn < assignments.length) {
                 showTurn();
             } else {
-                document.getElementById('game-screen').style.display = 'none';
-                document.getElementById('end-screen').style.display = 'block';
+                showEndScreen();
+            }
+        }
+
+        function showEndScreen() {
+            document.getElementById('game-screen').style.display = 'none';
+            document.getElementById('end-screen').style.display = 'block';
+        }
+
+        // --- SISTEMA DE GUARDADO (LOCALSTORAGE) ---
+        function saveGame() {
+            const gameState = {
+                assignments: assignments,
+                currentTurn: currentTurn,
+                isActive: true
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
+        }
+
+        function loadGame() {
+            const savedState = localStorage.getItem(STORAGE_KEY);
+            if (savedState) {
+                const state = JSON.parse(savedState);
+                if (state.isActive) {
+                    assignments = state.assignments;
+                    currentTurn = state.currentTurn;
+                    
+                    if (currentTurn >= assignments.length) {
+                        showEndScreen();
+                    } else {
+                        // Si hay un juego activo, saltar pantalla de inicio
+                        startGameUI();
+                    }
+                }
+            }
+        }
+
+        function hardReset() {
+            if(confirm("¿Seguro que quieres borrar todo y empezar de cero? Se perderá el sorteo actual.")) {
+                localStorage.removeItem(STORAGE_KEY);
+                location.reload();
             }
         }
     </script>
