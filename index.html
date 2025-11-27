@@ -34,164 +34,166 @@
             text-align: center;
         }
 
-        h1 { color: var(--primary); margin-bottom: 1.5rem; }
+        h1 { color: var(--primary); margin-bottom: 0.5rem; }
+        h3 { color: var(--secondary); margin-top: 0; }
         
-        .input-group {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        input {
-            flex: 1;
-            padding: 10px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            font-size: 16px;
-        }
-
         button {
-            padding: 10px 20px;
+            padding: 15px 30px;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
             font-weight: bold;
-            font-size: 16px;
-            transition: transform 0.1s;
+            font-size: 18px;
+            transition: transform 0.1s, background-color 0.2s;
+            width: 100%;
+            margin-top: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
 
         button:active { transform: scale(0.98); }
 
-        .btn-add { background-color: var(--secondary); color: white; }
-        .btn-start { background-color: var(--primary); color: white; width: 100%; margin-top: 20px;}
+        .btn-start { background-color: var(--primary); color: white; }
+        .btn-start:hover { background-color: #b01c1e; }
+        
         .btn-reset { background-color: #6c757d; color: white; margin-top: 10px;}
 
-        ul { list-style: none; padding: 0; text-align: left; }
-        li {
-            background: #eee;
-            margin: 5px 0;
-            padding: 10px;
-            border-radius: 5px;
-            display: flex;
-            justify-content: space-between;
+        /* Lista de participantes (Visualización) */
+        .participants-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            text-align: left;
+            margin: 20px 0;
+            max-height: 300px;
+            overflow-y: auto;
         }
 
-        .delete-btn { color: red; cursor: pointer; font-weight: bold; }
+        .participant-item {
+            background: #eee;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .participant-item::before {
+            content: "🎅";
+            margin-right: 8px;
+        }
 
         /* Pantalla del Juego */
         #game-screen { display: none; }
         
         .card {
             background: #fff;
-            border: 2px dashed var(--secondary);
-            padding: 40px;
+            border: 3px dashed var(--secondary);
+            padding: 40px 20px;
             margin: 20px 0;
             border-radius: 10px;
             cursor: pointer;
+            position: relative;
         }
 
-        .hidden-content { filter: blur(15px); user-select: none; transition: filter 0.3s;}
-        .revealed { filter: blur(0); }
+        .hidden-content { 
+            filter: blur(20px); 
+            opacity: 0.5;
+            user-select: none; 
+            transition: all 0.3s;
+        }
         
-        .instruction { font-size: 0.9rem; color: #666; margin-top: 10px; }
+        .revealed { 
+            filter: blur(0); 
+            opacity: 1;
+        }
+        
+        .instruction { font-size: 0.9rem; color: #666; margin-top: 15px; }
+
+        /* Animación suave */
+        .fade-in { animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
     </style>
 </head>
 <body>
 
-    <div class="container" id="setup-screen">
+    <div class="container fade-in" id="setup-screen">
         <h1>🎁 Amigo Secreto</h1>
-        <p>Agrega a los participantes (Mínimo 3)</p>
+        <h3>Lista de Participantes</h3>
+        <p style="font-size: 0.9rem; color: #666;">Verifiquen que estén todos antes de iniciar.</p>
         
-        <div class="input-group">
-            <input type="text" id="nameInput" placeholder="Nombre del participante..." onkeypress="handleEnter(event)">
-            <button class="btn-add" onclick="addParticipant()">Agregar</button>
-        </div>
+        <div class="participants-grid" id="staticList">
+            </div>
 
-        <ul id="participantsList"></ul>
-
-        <button class="btn-start" onclick="startGame()">¡Iniciar Sorteo!</button>
+        <button class="btn-start" onclick="startGame()">¡COMENZAR SORTEO!</button>
     </div>
 
-    <div class="container" id="game-screen">
-        <h2 id="turn-title">Turno de...</h2>
+    <div class="container fade-in" id="game-screen">
+        <h2 id="turn-title" style="color: var(--secondary)">Turno de...</h2>
         <p>Pasa el dispositivo a esta persona.</p>
         
         <div class="card" id="result-card" onclick="revealSecret()">
-            <h3 style="margin:0">Tu amigo secreto es:</h3>
+            <h3 style="margin:0; color: #333; font-weight: normal;">Tu amigo secreto es:</h3>
+            <br>
             <h1 id="secret-name" class="hidden-content">???</h1>
-            <p class="instruction">Toca aquí para ver/ocultar</p>
+            <p class="instruction">👆 Toca la tarjeta para ver/ocultar 👆</p>
         </div>
 
-        <button class="btn-start" id="next-btn" onclick="nextTurn()" disabled>Siguiente Persona</button>
+        <button class="btn-start" id="next-btn" onclick="nextTurn()" disabled style="opacity: 0.5;">Siguiente Persona</button>
     </div>
 
-    <div class="container" id="end-screen" style="display: none;">
+    <div class="container fade-in" id="end-screen" style="display: none;">
         <h1>¡Sorteo Finalizado! 🎄</h1>
-        <p>Todos han recibido su amigo secreto.</p>
-        <button class="btn-reset" onclick="location.reload()">Nuevo Juego</button>
+        <p>Todos han recibido su asignación.</p>
+        <div style="font-size: 3rem; margin: 20px;">🎅🎉</div>
+        <button class="btn-reset" onclick="location.reload()">Reiniciar todo</button>
     </div>
 
     <script>
-        let participants = [];
+        // LISTA FIJA DE PARTICIPANTES
+        const participants = [
+            "Denisse",
+            "Alejandra",
+            "Ambar",
+            "Romina",
+            "Nathalie",
+            "Thais",
+            "Cinthya",
+            "Gary",
+            "Lorena",
+            "Keyla",
+            "Kelly",
+            "Maria Jose"
+        ];
+
         let assignments = [];
         let currentTurn = 0;
         let isRevealed = false;
 
-        function handleEnter(e) {
-            if (e.key === 'Enter') addParticipant();
-        }
-
-        function addParticipant() {
-            const input = document.getElementById('nameInput');
-            const name = input.value.trim();
-            
-            if (name && !participants.includes(name)) {
-                participants.push(name);
-                renderList();
-                input.value = '';
-                input.focus();
-            } else if (participants.includes(name)) {
-                alert('¡Ese nombre ya está en la lista!');
-            }
-        }
-
-        function removeParticipant(index) {
-            participants.splice(index, 1);
-            renderList();
-        }
-
-        function renderList() {
-            const list = document.getElementById('participantsList');
-            list.innerHTML = participants.map((name, index) => `
-                <li>
-                    ${name}
-                    <span class="delete-btn" onclick="removeParticipant(${index})">×</span>
-                </li>
+        // Cargar lista visualmente al inicio
+        window.onload = function() {
+            const list = document.getElementById('staticList');
+            list.innerHTML = participants.map(name => `
+                <div class="participant-item">${name}</div>
             `).join('');
-        }
+        };
 
         function startGame() {
-            if (participants.length < 3) {
-                alert('Se necesitan al menos 3 personas para jugar.');
-                return;
-            }
-
             // Lógica del sorteo (Algoritmo Circular Aleatorio)
-            // 1. Copiamos y mezclamos la lista
             let shuffled = [...participants];
+            // Algoritmo Fisher-Yates para mezcla perfecta
             for (let i = shuffled.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
             }
 
-            // 2. Asignamos en cadena: A regala a B, B a C... Z a A
+            // Asignación en cadena (Circular)
             assignments = shuffled.map((giver, index) => {
                 let receiver = shuffled[(index + 1) % shuffled.length];
                 return { giver, receiver };
             });
 
-            // 3. Cambiar UI
+            // Cambiar pantalla
             document.getElementById('setup-screen').style.display = 'none';
             document.getElementById('game-screen').style.display = 'block';
             showTurn();
@@ -199,11 +201,20 @@
 
         function showTurn() {
             isRevealed = false;
-            document.getElementById('turn-title').innerText = `Turno de: ${assignments[currentTurn].giver}`;
-            document.getElementById('secret-name').innerText = assignments[currentTurn].receiver;
-            document.getElementById('secret-name').className = 'hidden-content';
-            document.getElementById('next-btn').disabled = true;
-            document.getElementById('next-btn').style.opacity = '0.5';
+            // Actualizar textos
+            document.getElementById('turn-title').innerHTML = `Turno de: <br><strong style="font-size: 1.5em; color: var(--primary)">${assignments[currentTurn].giver}</strong>`;
+            
+            // Preparar tarjeta oculta
+            const secretEl = document.getElementById('secret-name');
+            secretEl.innerText = assignments[currentTurn].receiver;
+            secretEl.className = 'hidden-content';
+            
+            // Bloquear botón siguiente
+            const nextBtn = document.getElementById('next-btn');
+            nextBtn.disabled = true;
+            nextBtn.style.opacity = '0.5';
+            nextBtn.innerText = "Siguiente Persona";
+            nextBtn.style.backgroundColor = 'var(--primary)';
         }
 
         function revealSecret() {
@@ -211,25 +222,33 @@
             const nextBtn = document.getElementById('next-btn');
             
             if (!isRevealed) {
+                // MOSTRAR
                 secretEl.className = 'revealed';
                 isRevealed = true;
+                
+                // Activar botón de siguiente
                 nextBtn.disabled = false;
                 nextBtn.style.opacity = '1';
-                nextBtn.innerText = "Entendido, borrar pantalla";
+                nextBtn.style.backgroundColor = 'var(--secondary)'; // Cambio de color para indicar acción
+                nextBtn.innerText = "¡Listo! Ocultar y pasar";
             } else {
+                // OCULTAR (Si le dan click de nuevo por error o curiosidad)
                 secretEl.className = 'hidden-content';
                 isRevealed = false;
+                nextBtn.disabled = true;
+                nextBtn.style.opacity = '0.5';
+                nextBtn.innerText = "Siguiente Persona";
+                nextBtn.style.backgroundColor = 'var(--primary)';
             }
         }
 
         function nextTurn() {
-            // Limpiamos pantalla primero para seguridad
+            // Doble seguridad visual antes de cambiar
             document.getElementById('secret-name').className = 'hidden-content';
             
             currentTurn++;
             if (currentTurn < assignments.length) {
                 showTurn();
-                document.getElementById('next-btn').innerText = "Siguiente Persona";
             } else {
                 document.getElementById('game-screen').style.display = 'none';
                 document.getElementById('end-screen').style.display = 'block';
